@@ -62,12 +62,26 @@ block modal-body-content
     h6 Add teacher
     table.table.table-condensed
       .form-horizontal
-        form#school-admin-search-form.form-group
+        form#teacher-search-form.form-group
         .col-sm-5
-          input.form-control#school-admin-search(type="text")
+          input.form-control#teacher-search(type="text")
         .col-sm-1
-          button.btn.btn-primary.btn-large#school-admin-search-add-teacher-button Add Teacher
-      #school-admin-search-result
+          button.btn.btn-primary.btn-large#teacher-search-button Search
+          button.btn.btn-large#clear-teacher-search-button Clear results
+      #teacher-search-result
+
+    h6 Edit teachers
+    table.table.table-condensed
+      - var administratedSchools=view.administratedSchools()
+      for school in Object.keys(administratedSchools)
+        - var teachers=administratedSchools[school]
+        h3.m-t-3 #{school}
+        tr
+          for teacher in teachers
+            td= teacher.name
+            td= teacher.role
+            button.btn.btn-primary.btn-large.remove-teacher Remove
+
 
   if view.prepaids.size()
     h3.m-t-3#prepaids Existing Prepaids

@@ -1,3 +1,4 @@
+_ = require 'lodash'
 require('app/styles/admin/administer-user-modal.sass')
 ModalView = require 'views/core/ModalView'
 template = require 'templates/admin/administer-user-modal'
@@ -31,6 +32,67 @@ module.exports = class AdministerUserModal extends ModalView
     'click .save-prepaid-info-btn': 'onClickSavePrepaidInfo'
     'click #school-admin-checkbox': 'onClickSchoolAdminCheckbox'
     'click #edit-school-admins-link': 'onClickEditSchoolAdmins'
+    'submit #teacher-search-form': 'onSubmitTeacherSearchForm'
+    'click .add-administer-teacher': 'onClickAddAdministeredTeacher'
+    'click #clear-teacher-search-button': 'onClearTeacherSearchResults'
+    'click #teacher-search-button': 'onSubmitTeacherSearchForm'
+
+  onSearchRequestSuccess: (teachers) =>
+    forms.enableSubmit(@$('#teacher-search-button'))
+    result = _.map(teachers, (teacher) ->
+      "
+        <tr data-user-id='#{teacher._id}'>
+          <td>
+            <button class='add-administer-teacher'>Add</button>
+          </td>
+          <td><code>#{teacher._id}</code></td>
+          <td>#{_.escape(teacher.name or 'Anonymous')}</td>
+          <td>#{_.escape(teacher.email)}</td>
+          <td>#{teacher.firstName or 'No first name'}</td>
+          <td>#{teacher.lastName or 'No last name'}</td>
+          <td>#{teacher.schoolName or 'No school name'}</td>
+          <td>Verified teacher: #{teacher.verifiedTeacher or 'false'}</td>
+        </tr>
+      "
+    )
+
+    result = "<table class=\"table\">#{result.join('\n')}</table>"
+    @$el.find('#teacher-search-result').html(result)
+
+  onSearchRequestFailure: (jqxhr, status, error) =>
+    console.log('in onSearchRequestFailure with')
+    console.log(jqxhr)
+    console.log(status)
+    console.log(error)
+
+    return if @destroyed
+    forms.enableSubmit(@$('#teacher-search-button'))
+    console.warn "There was an error looking up #{@lastTeacherSearchValue}:", error
+
+  onClearTeacherSearchResults: (e) ->
+    console.log('in onClearTeacherSearchResults with')
+    console.log(e)
+    @$el.find('#teacher-search-result').html('')
+
+  onSubmitTeacherSearchForm: (e) ->
+    console.log('in onSubmitTeacherSearchForm with')
+    console.log(e)
+    e.preventDefault()
+    # searchValue = @$el.find('#teacher-search').val()
+    # return if searchValue is @lastTeacherSearchValue
+    # return @onSearchRequestSuccess [] unless @lastTeacherSearchValue = searchValue.toLowerCase()
+    forms.disableSubmit(@$('#teacher-search-button'))
+
+    $.ajax
+      type: 'GET',
+      url: '/db/user'
+      data: {
+        adminSearch: @$el.find('#teacher-search').val()
+        onlyTeachers: true
+      }
+      success: @onSearchRequestSuccess
+      error: @onSearchRequestFailure
+
 
   initialize: (options, @userHandle) ->
     @user = new User({_id:@userHandle})
@@ -60,6 +122,15 @@ module.exports = class AdministerUserModal extends ModalView
     @none = not (@free or @freeUntil or @coupon)
     @trialRequest = @trialRequests.first()
     @prepaidTableState={}
+    @foundTeachers = []
+    @administratedTeachers = []
+    administrated = @user.get('administratedTeachers') or []
+    promises = _.map(administrated, (id) -> (new User({_id: id})).fetch())
+    Promise.all(promises).then((t) ->
+      console.log('promises returned')
+      console.log(t)
+      @administratedTeachers = t
+    )
     super()
 
   onClickCreatePayment: ->
@@ -250,19 +321,21 @@ module.exports = class AdministerUserModal extends ModalView
           @renderSelectors('#'+prepaidId)
         return
 
-  userIsSchoolAdmin: () ->
-    @user.get('schoolAdmin')
+  userIsSchoolAdmin: -> @user.isSchoolAdmin()
+
+
 
   onClickSchoolAdminCheckbox: (e) ->
     checked = @$(e.target).prop('checked')
     @userSaveState = 'saving'
     @render()
-    fetchJson("/db/user/#{@user.id}/schoolAdmin", {
+    fetchJson("/db/user/#{@user.id}/schoolAdministrator", {
       method: 'PUT',
-      json: checked
+      json: {
+        schoolAdministrator: checked
+      }
     }).then (res) =>
       @userSaveState = 'saved'
-      @user.set('schoolAdmin', res.schoolAdmin)
       @render()
       setTimeout((()=>
         @userSaveState = null
@@ -270,7 +343,80 @@ module.exports = class AdministerUserModal extends ModalView
       ), 2000)
     null
 
+  # put('/db/user/:handle/schoolAdministrator', mw.auth.checkHasPermission([ User.PERMISSIONS.COCO_ADMIN ]), mw.users.setSchoolAdministrator)
+  # post('/db/user/:handle/schoolAdministrator/administratedTeacher', mw.auth.checkHasPermission([ User.PERMISSIONS.COCO_ADMIN ]), mw.users.addAdministratedTeacher)
+  # delete('/db/user/:handle/schoolAdministrator/administratedTeacher/:administratedTeacherId', mw.auth.checkHasPermission([ User.PERMISSIONS.COCO_ADMIN ]), mw.users.removeAdministratedTeacher)
+
+
   onClickEditSchoolAdmins: (e) ->
     @editingSchoolAdmins = !@editingSchoolAdmins
     @render()
+
+  onClickAddAdministeredTeacher: (e) -> 
+    console.log('in onClickAddAdministeredTeacher')
+    teacher = $(e.target).closest('tr').data('user-id')
+
+    console.log('got teacher:')
+    console.log(teacher)
+
+    @foundTeachers = @foundTeachers.filter (t) -> t._id isnt teacher
+    console.log('@foundTeachers is')
+    console.log(@foundTeachers)
+
+    @render()
+
+    fetchJson("/db/user/#{@user.id}/schoolAdministrator/administratedTeacher", {
+      method: 'POST',
+      json: {
+        administratedTeacherId: teacher
+      }
+    }).then (res) =>
+      @administratedTeachers.push(teacher)
+      console.log('after POST')
+      console.log('@administratedTeachers is')
+      console.log(@administratedTeachers)
+      @render()
+    null
+
+  onClickRemoveAdministeredTeacher: (e) -> 
+    console.log('in onClickRemoveAdministeredTeacher')
+    console.log('in onClickAddAdministeredTeacher')
+    teacher = $(e.target).closest('tr').data('user-id')
+
+    console.log('got teacher:')
+    console.log(teacher)
+
+    @userSaveState = 'removing...'
+
+    @render()
+
+    fetchJson("/db/user/#{@user.id}/schoolAdministrator/administratedTeacher", {
+      method: 'DELETE',
+      json: {
+        administratedTeacherId: teacher
+      }
+    }).then (res) =>
+      @administratedTeachers = @administratedTeacher.filter (t) -> t._id isnt teacher
+      console.log('after DELETE')
+      console.log('@administratedTeachers is')
+      console.log(@administratedTeachers)
+      @userSaveState = null
+      @render()
+    null
+
+  administratedSchools: ->
+    schools = {}
+    console.log('about to loop for: ')
+    console.log(@administratedTeachers)
+    _.forEach @administratedTeachers, (teacher) =>
+      console.log('looping in schools')
+      console.log(teacher)
+      if not schools[teacher.school]
+        schools[teacher.school] = [teacher]
+      else
+        schools[teacher.school].push(teacher)
+
+    console.log('returning schools: ')
+    console.log(schools)
+    schools
 
