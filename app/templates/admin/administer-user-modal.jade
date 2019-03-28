@@ -72,15 +72,7 @@ block modal-body-content
 
     h6 Edit teachers
     table.table.table-condensed
-      - var administratedSchools=view.administratedSchools()
-      for school in Object.keys(administratedSchools)
-        - var teachers=administratedSchools[school]
-        h3.m-t-3 #{school}
-        tr
-          for teacher in teachers
-            td= teacher.name
-            td= teacher.role
-            button.btn.btn-primary.btn-large.remove-teacher Remove
+      #school-admin-result
 
 
   if view.prepaids.size()
