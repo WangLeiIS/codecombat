@@ -286,9 +286,6 @@ module.exports = class AdministerUserModal extends ModalView
       administrated = @user.get('administratedTeachers')
 
       if administrated
-        console.log('administered exists: ')
-        console.log(administrated)
-
         $.ajax
           type: 'GET',
           url: '/db/user'
@@ -308,16 +305,8 @@ module.exports = class AdministerUserModal extends ModalView
     @render()
 
   onClickAddAdministeredTeacher: (e) -> 
-    console.log('in onClickAddAdministeredTeacher')
     teacher = $(e.target).closest('tr').data('user-id')
-
-    console.log('got teacher:')
-    console.log(teacher)
-
     @foundTeachers = @foundTeachers.filter (t) -> t._id isnt teacher
-    console.log('@foundTeachers is')
-    console.log(@foundTeachers)
-
     @render()
 
     fetchJson("/db/user/#{@user.id}/schoolAdministrator/administratedTeacher", {
@@ -343,13 +332,7 @@ module.exports = class AdministerUserModal extends ModalView
     null
 
   onClickRemoveAdministeredTeacher: (e) -> 
-    console.log('in onClickRemoveAdministeredTeacher')
-    console.log('in onClickAddAdministeredTeacher')
     teacher = $(e.target).closest('tr').data('user-id')
-
-    console.log('got teacher:')
-    console.log(teacher)
-
     @userSaveState = 'removing...'
 
     @render()
@@ -361,9 +344,6 @@ module.exports = class AdministerUserModal extends ModalView
       }
     }).then (res) =>
       @administratedTeachers = @administratedTeacher.filter (t) -> t._id isnt teacher
-      console.log('after DELETE')
-      console.log('@administratedTeachers is')
-      console.log(@administratedTeachers)
       @updateAdministratedTeachers()
       @userSaveState = null
       @render()
@@ -395,27 +375,15 @@ module.exports = class AdministerUserModal extends ModalView
     @$el.find('#teacher-search-result').html(result)
 
   onSearchRequestFailure: (jqxhr, status, error) =>
-    console.log('in onSearchRequestFailure with')
-    console.log(jqxhr)
-    console.log(status)
-    console.log(error)
-
     return if @destroyed
     forms.enableSubmit(@$('#teacher-search-button'))
     console.warn "There was an error looking up #{@lastTeacherSearchValue}:", error
 
   onClearTeacherSearchResults: (e) ->
-    console.log('in onClearTeacherSearchResults with')
-    console.log(e)
     @$el.find('#teacher-search-result').html('')
 
   onSubmitTeacherSearchForm: (e) ->
-    console.log('in onSubmitTeacherSearchForm with')
-    console.log(e)
     e.preventDefault()
-    # searchValue = @$el.find('#teacher-search').val()
-    # return if searchValue is @lastTeacherSearchValue
-    # return @onSearchRequestSuccess [] unless @lastTeacherSearchValue = searchValue.toLowerCase()
     forms.disableSubmit(@$('#teacher-search-button'))
 
     $.ajax
@@ -456,19 +424,11 @@ module.exports = class AdministerUserModal extends ModalView
 
   administratedSchools: (teachers) ->
     schools = {}
-    console.log('about to loop for: ')
-    console.log(teachers)
     _.forEach teachers, (teacher) =>
-      console.log('looping in schools')
-      console.log(teacher._trialRequest.organization)
-      console.log('exists?')
-      console.log(schools[teacher._trialRequest.organization])
       if not schools[teacher._trialRequest.organization]
         schools[teacher._trialRequest.organization] = [teacher]
       else
         schools[teacher._trialRequest.organization].push(teacher)
 
-    console.log('returning schools: ')
-    console.log(schools)
     schools
 
