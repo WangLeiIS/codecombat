@@ -34,22 +34,11 @@ module.exports = class User extends CocoModel
     LICENSOR: 'licensor'
   }
 
-  isAdmin: ->
-    p = @get('permissions')
-    return p and @PERMISSIONS.COCO_ADMIN in p
-  isLicensor: ->
-    p = @get('permissions')
-    return p and @PERMISSIONS.LICENSOR in p
-  isArtisan: ->
-    p = @get('permissions')
-    return p and @PERMISSIONS.ARTISAN in p
-  isInGodMode: ->
-    p = @get('permissions')
-    return p and @PERMISSIONS.GOD_MODE in p
-  isSchoolAdmin: ->
-    p = @get('permissions')
-    return p and @PERMISSIONS.SCHOOL_ADMINISTRATOR in p
-
+  isAdmin: -> @PERMISSIONS.COCO_ADMIN in @get('permissions', true)
+  isLicensor: -> @PERMISSIONS.LICENSOR in @get('permissions', true)
+  isArtisan: -> @PERMISSIONS.ARTISAN in @get('permissions', true)
+  isInGodMode: -> @PERMISSIONS.GOD_MODE in @get('permissions', true)
+  isSchoolAdmin: -> @PERMISSIONS.SCHOOL_ADMINISTRATOR in @get('permissions', true)
   isAnonymous: -> @get('anonymous', true)
   isSmokeTestUser: -> User.isSmokeTestUser(@attributes)
   displayName: -> @get('name', true)
