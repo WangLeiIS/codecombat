@@ -59,18 +59,20 @@ block modal-header-content
 block modal-body-content
   if view.editingSchoolAdmins
     h3.m-t-3#school-admins-title Edit School Admin Teacher Access
-    h6 Add teacher
+    h5 Add teacher
     table.table.table-condensed
       .form-horizontal
         form#teacher-search-form.form-group
-        .col-sm-5
+        .col-sm-4
           input.form-control#teacher-search(type="text")
         .col-sm-1
           button.btn.btn-primary.btn-large#teacher-search-button Search
+        .col-sm-1
           button.btn.btn-large#clear-teacher-search-button Clear results
       #teacher-search-result
-
-    h6 Edit teachers
+    br
+    h5 Edit teachers
+    br
     table.table.table-condensed
       #school-admin-result
 

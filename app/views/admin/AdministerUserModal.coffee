@@ -285,7 +285,7 @@ module.exports = class AdministerUserModal extends ModalView
     if typeof @editingSchoolAdmins is 'undefined'
       administrated = @user.get('administratedTeachers')
 
-      if administrated
+      if administrated?.length
         $.ajax
           type: 'GET',
           url: '/db/user'
@@ -304,34 +304,22 @@ module.exports = class AdministerUserModal extends ModalView
     @editingSchoolAdmins = !@editingSchoolAdmins
     @render()
 
-  onClickAddAdministeredTeacher: (e) -> 
-    teacher = $(e.target).closest('tr').data('user-id')
-    @foundTeachers = @foundTeachers.filter (t) -> t._id isnt teacher
+  onClickAddAdministeredTeacher: (e) ->
+    teacher = _.find @foundTeachers, (t) -> t._id is $(e.target).closest('tr').data('user-id')
+    @foundTeachers = _.filter @foundTeachers, (t) -> t._id isnt teacher._id
     @render()
 
     fetchJson("/db/user/#{@user.id}/schoolAdministrator/administratedTeacher", {
       method: 'POST',
       json: {
-        administratedTeacherId: teacher
+        administratedTeacherId: teacher._id
       }
     }).then (res) =>
-      $.ajax
-        type: 'GET',
-        url: '/db/user'
-        data: {
-          adminSearch: teacher
-        }
-        success: (teacher) ->
-          @administratedTeachers.push(teacher)
-          @updateAdministratedTeachers()
-        error: (jqxhr, status, error) =>
-          errorString = "There was an error getting the new administrated teacher, see the console"
-          @userSaveState = errorString
-          @render()
-          console.warn errorString, error
+      @administratedTeachers.push(teacher)
+      @updateAdministratedTeachers()
     null
 
-  onClickRemoveAdministeredTeacher: (e) -> 
+  onClickRemoveAdministeredTeacher: (e) ->
     teacher = $(e.target).closest('tr').data('user-id')
     @userSaveState = 'removing...'
 
@@ -348,10 +336,13 @@ module.exports = class AdministerUserModal extends ModalView
 
   onSearchRequestSuccess: (teachers) =>
     forms.enableSubmit(@$('#teacher-search-button'))
+
+    # Filter out the existing administrated teachers and themselves:
     existingTeachers = _.pluck(@administratedTeachers, '_id')
-    existingTeachers.push(@user._id)
-    teachers = _.filter(teachers, (teacher) -> teacher._id not in existingTeachers)
-    result = _.map(teachers, (teacher) ->
+    existingTeachers.push(@user.id)
+    @foundTeachers = _.filter(teachers, (teacher) -> teacher._id not in existingTeachers)
+
+    result = _.map(@foundTeachers, (teacher) ->
       "
         <tr data-user-id='#{teacher._id}'>
           <td>
@@ -422,10 +413,11 @@ module.exports = class AdministerUserModal extends ModalView
   administratedSchools: (teachers) ->
     schools = {}
     _.forEach teachers, (teacher) =>
-      if not schools[teacher._trialRequest.organization]
-        schools[teacher._trialRequest.organization] = [teacher]
+      school = teacher?._trialRequest?.organization or "No school found"
+      if not schools[school]
+        schools[school] = [teacher]
       else
-        schools[teacher._trialRequest.organization].push(teacher)
+        schools[school].push(teacher)
 
     schools
 
