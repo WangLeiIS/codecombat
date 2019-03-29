@@ -337,13 +337,10 @@ module.exports = class AdministerUserModal extends ModalView
 
     @render()
 
-    fetchJson("/db/user/#{@user.id}/schoolAdministrator/administratedTeacher", {
-      method: 'DELETE',
-      json: {
-        administratedTeacherId: teacher
-      }
+    fetchJson("/db/user/#{@user.id}/schoolAdministrator/administratedTeacher/#{teacher}", {
+      method: 'DELETE'
     }).then (res) =>
-      @administratedTeachers = @administratedTeacher.filter (t) -> t._id isnt teacher
+      @administratedTeachers = @administratedTeachers.filter (t) -> t._id isnt teacher
       @updateAdministratedTeachers()
       @userSaveState = null
       @render()
